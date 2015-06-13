@@ -2,7 +2,15 @@ var dataPath = "../assets/data/test_data.tsv";
 var margin = {top: 20, right: 20, bottom: 20, left: 40},
     width = 960 - margin.left - margin.right,
     height = 650 - margin.top - margin.bottom;
-var numDatePadding = 1;
+var NUM_DATE_PADDING = 1;
+var DOT_RADIUS = 8;
+var DOT_MARGIN = 3;
+
+var applyOnField = function (func, data, fieldName) {
+    return func(data, function (d) {
+        return d[fieldName];
+    });
+};
 
 var x = d3.scale.linear()
     .range([0, width]);
@@ -24,7 +32,9 @@ var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .append("g")
+    .attr("transform",
+    "translate(" + (width / 2 + margin.left) + "," + (height / 2 + margin.top) + ")");
 
 var categoryColorMap = {};
 var getColor = function (category) {
@@ -45,23 +55,20 @@ d3.tsv(dataPath, function (error, data) {
     y.domain(d3.extent(data, function (d) {
         return d.weight;
     })).nice();
-    var rx = d3.scale.linear().domain([1.0, 5.0]).range([0, 2 * Math.PI]);
-    var maxDate = d3.max(data, function (d) {
-        return d.date;
-    });
-    var minDate = d3.min(data, function (d) {
-        return d.date;
-    });
-    var ry = d3.scale.linear().domain([0.0, maxDate + numDatePadding]).range([50, 300]);
+    var maxDelta = applyOnField(d3.max, data, 'delta');
+    var rx = d3.scale.linear().domain([0, maxDelta]).range([0, 360]);
+    var maxDate = applyOnField(d3.max, data, 'date');
+    var minDate = applyOnField(d3.min, data, 'date');
+    var ry = d3.scale.linear().domain([0.0, maxDate + NUM_DATE_PADDING]).range([50, 300]);
 
-    var cr = ry.ticks(maxDate - minDate + 1 + numDatePadding);
+    var cr = ry.ticks(maxDate - minDate + 1 + NUM_DATE_PADDING);
     //var cr = ry.tickValues();
 
     svg.selectAll("circle.line").data(cr)
         .enter().append("circle").attr("class", "line")
         .attr({
-            cx: width / 2 + margin.left,
-            cy: height / 2 + margin.top,
+            //cx: width / 2 + margin.left,
+            //cy: height / 2 + margin.top,
             r: function (d) {
                 return ry(d);
             },
@@ -69,39 +76,59 @@ d3.tsv(dataPath, function (error, data) {
             stroke: "#999"
         });
 
-    svg.selectAll(".dot")
-        .data(data)
-        .enter().append("circle")
-        .attr("class", "dot")
-        .attr("r", 8)
-        .attr("cx", function (d) {
-            angle = rx((d.weight + d.delta));
-            radius = ry((d.date));
-            return Math.cos(angle) * radius + width / 2 + margin.left;
-        })
-        .attr("cy", function (d) {
-            angle = rx((d.weight + d.delta));
-            radius = ry((d.date));
-            return Math.sin(angle) * radius + height / 2 + margin.top;
-        })
+    var nodes = svg.selectAll(".node")
+            .data(data)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .on('mouseover', function (d) {
+                var xPosition = parseFloat(d3.select(this).attr("cx") + margin.left);
+                var yPosition = parseFloat(d3.select(this).attr("cy") + margin.top);
+
+                //Update the tooltip position and value
+                d3.select("#tooltip")
+                    .style("left", xPosition + "px")
+                    .style("top", yPosition + "px")
+                    .select("#label")
+                    .text(d.label);
+
+                //Show the tooltip
+                d3.select("#tooltip").classed("hidden", false);
+            })
+            .on('mouseout', function (d) {
+                d3.select("#tooltip").classed("hidden", true);
+            })
+            .attr("transform", function (d) {
+                var angle = rx(d.delta);
+                var radius = ry(d.date);
+                return "rotate(" + (angle - 90) + ")translate(" + radius + ")";
+                //return Math.cos(angle) * radius + width / 2 + margin.left;
+                //    return Math.sin(angle) * radius + height / 2 + margin.top;
+            })
+        ;
+
+    nodes
+        .append("circle")
         .style("fill", function (d) {
             return getColor(d.category);
         })
-        .on('mouseover', function (d) {
-            var xPosition = parseFloat(d3.select(this).attr("cx") + margin.left);
-            var yPosition = parseFloat(d3.select(this).attr("cy") + margin.top);
+        .attr("class", "dot")
+        .attr("r", DOT_RADIUS);
 
-            //Update the tooltip position and value
-            d3.select("#tooltip")
-                .style("left", xPosition + "px")
-                .style("top", yPosition + "px")
-                .select("#label")
-                .text(d.label);
-
-            //Show the tooltip
-            d3.select("#tooltip").classed("hidden", false);
+    nodes
+        .append("text")
+        .attr("dy", ".31em")
+        .attr("text-anchor", function (d) {
+            var angle = rx(d.delta);
+            return angle < 180 ? "start" : "end";
         })
-        .on('mouseout', function (d) {
-            d3.select("#tooltip").classed("hidden", true);
+        .attr("transform", function (d) {
+            var angle = rx(d.delta);
+            var shift = DOT_RADIUS + DOT_MARGIN
+            return angle < 180 ? "translate(" + shift + ")" :
+            "rotate(180)translate(-" + shift + ")";
+        })
+        .text(function (d) {
+            return d.label;
         });
 });
