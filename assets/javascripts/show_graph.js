@@ -2,6 +2,7 @@ var dataPath = "../assets/data/test_data.tsv";
 var margin = {top: 20, right: 20, bottom: 20, left: 40},
     width = 960 - margin.left - margin.right,
     height = 650 - margin.top - margin.bottom;
+var numDatePadding = 1;
 
 var x = d3.scale.linear()
     .range([0, width]);
@@ -45,9 +46,16 @@ d3.tsv(dataPath, function (error, data) {
         return d.weight;
     })).nice();
     var rx = d3.scale.linear().domain([1.0, 5.0]).range([0, 2 * Math.PI]);
-    var ry = d3.scale.linear().domain([1.0, 8.0]).range([50, 300]);
+    var maxDate = d3.max(data, function (d) {
+        return d.date;
+    });
+    var minDate = d3.min(data, function (d) {
+        return d.date;
+    });
+    var ry = d3.scale.linear().domain([0.0, maxDate + numDatePadding]).range([50, 300]);
 
-    cr = ry.ticks(7);
+    var cr = ry.ticks(maxDate - minDate + 1 + numDatePadding);
+    //var cr = ry.tickValues();
 
     svg.selectAll("circle.line").data(cr)
         .enter().append("circle").attr("class", "line")
