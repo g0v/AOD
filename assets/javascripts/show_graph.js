@@ -42,11 +42,11 @@ var getColor = function (category) {
     return categoryColorMap[category];
 };
 
-d3.tsv(dataPath, function (error, data) {
+var onReceiveData = function (data) {
     data.forEach(function (d) {
         d.date = +d.date;
         d.weight = +d.weight;
-        d.delta = Math.random();
+        d.delta = d.delta !== undefined ? d.delta : Math.random();
     });
 
     x.domain(d3.extent(data, function (d) {
@@ -55,17 +55,24 @@ d3.tsv(dataPath, function (error, data) {
     y.domain(d3.extent(data, function (d) {
         return d.weight;
     })).nice();
-    var maxDelta = applyOnField(d3.max, data, 'delta');
+    var maxDelta = 1;
     var rx = d3.scale.linear().domain([0, maxDelta]).range([0, 360]);
     var maxDate = applyOnField(d3.max, data, 'date');
     var minDate = applyOnField(d3.min, data, 'date');
-    var ry = d3.scale.linear().domain([0.0, maxDate + NUM_DATE_PADDING]).range([50, 300]);
+    var ry = d3.scale.linear().domain([0.0, maxDate + NUM_DATE_PADDING]).range([1, 300]);
 
     var cr = ry.ticks(maxDate - minDate + 1 + NUM_DATE_PADDING);
     //var cr = ry.tickValues();
 
-    svg.selectAll("circle.line").data(cr)
-        .enter().append("circle").attr("class", "line")
+    var lines = svg.selectAll("circle.line")
+        .data(cr);
+
+    lines
+        .enter()
+        .append("circle")
+        .attr("class", "line")
+
+    lines
         .attr({
             //cx: width / 2 + margin.left,
             //cy: height / 2 + margin.top,
@@ -76,46 +83,44 @@ d3.tsv(dataPath, function (error, data) {
             stroke: "#999"
         });
 
+    lines
+        .exit().remove();
+
     var nodes = svg.selectAll(".node")
-            .data(data)
-            .enter()
-            .append("g")
-            .attr("class", "node")
-            .on('mouseover', function (d) {
-                var xPosition = parseFloat(d3.select(this).attr("cx") + margin.left);
-                var yPosition = parseFloat(d3.select(this).attr("cy") + margin.top);
+        .data(data);
+    var nodesEnter = nodes
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .on('mouseover', function (d) {
+            var xPosition = parseFloat(d3.select(this).attr("cx") + margin.left);
+            var yPosition = parseFloat(d3.select(this).attr("cy") + margin.top);
 
-                //Update the tooltip position and value
-                d3.select("#tooltip")
-                    .style("left", xPosition + "px")
-                    .style("top", yPosition + "px")
-                    .select("#label")
-                    .text(d.label);
+            //Update the tooltip position and value
+            d3.select("#tooltip")
+                .style("left", xPosition + "px")
+                .style("top", yPosition + "px")
+                .select("#label")
+                .text(d.label);
 
-                //Show the tooltip
-                d3.select("#tooltip").classed("hidden", false);
-            })
-            .on('mouseout', function (d) {
-                d3.select("#tooltip").classed("hidden", true);
-            })
-            .attr("transform", function (d) {
-                var angle = rx(d.delta);
-                var radius = ry(d.date);
-                return "rotate(" + (angle - 90) + ")translate(" + radius + ")";
-                //return Math.cos(angle) * radius + width / 2 + margin.left;
-                //    return Math.sin(angle) * radius + height / 2 + margin.top;
-            })
-        ;
+            //Show the tooltip
+            d3.select("#tooltip").classed("hidden", false);
+        })
+        .on('mouseout', function (d) {
+            d3.select("#tooltip").classed("hidden", true);
+        })
 
-    nodes
+    // ticks
+    nodesEnter
         .append("circle")
         .style("fill", function (d) {
             return getColor(d.category);
         })
         .attr("class", "dot")
-        .attr("r", DOT_RADIUS);
+        .attr("r", DOT_RADIUS)
 
-    nodes
+    //labels
+    nodesEnter
         .append("text")
         .attr("dy", ".31em")
         .attr("text-anchor", function (d) {
@@ -124,11 +129,35 @@ d3.tsv(dataPath, function (error, data) {
         })
         .attr("transform", function (d) {
             var angle = rx(d.delta);
-            var shift = DOT_RADIUS + DOT_MARGIN
+            var shift = DOT_RADIUS + DOT_MARGIN;
             return angle < 180 ? "translate(" + shift + ")" :
             "rotate(180)translate(-" + shift + ")";
         })
         .text(function (d) {
             return d.label;
         });
+
+    nodes
+        .attr("transform", function (d) {
+            var angle = rx(d.delta);
+            var radius = ry(d.date);
+            return "rotate(" + (angle - 90) + ")translate(" + radius + ")";
+            //return Math.cos(angle) * radius + width / 2 + margin.left;
+            //    return Math.sin(angle) * radius + height / 2 + margin.top;
+        });
+
+};
+d3.tsv(dataPath, function (error, data) {
+    onReceiveData(data);
+
+    setInterval(function () {
+        var newDate = data.length;
+        var newRow = {
+            date: newDate,
+            label: 'event#' + newDate,
+            category: newDate
+        };
+        data.push(newRow);
+        onReceiveData(data);
+    }, 5000);
 });
