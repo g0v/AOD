@@ -25,6 +25,12 @@ var svg = d3.select("body").append("svg")
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+var categoryColorMap = {};
+var getColor = function (category) {
+    categoryColorMap[category] = categoryColorMap[category] || d3.hsl(Math.random() * 360, 1, 0.5);
+    return categoryColorMap[category];
+};
+
 d3.tsv(dataPath, function (error, data) {
     data.forEach(function (d) {
         d.date = +d.date;
@@ -71,7 +77,7 @@ d3.tsv(dataPath, function (error, data) {
             return Math.sin(angle) * radius + height / 2 + margin.top;
         })
         .style("fill", function (d) {
-            return 'white';
+            return getColor(d.category);
         })
         .on('mouseover', function (d) {
             var xPosition = parseFloat(d3.select(this).attr("cx") + margin.left);
