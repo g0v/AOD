@@ -4,12 +4,22 @@
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="../assets/stylesheets/show_graph.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 </head>
 <body>
+<form action="#" id="search_form" class="form-inline">
+    <div class="form-group">
+        <input class="form-control" type="text" id="keyword"
+                placeholder="關鍵字"/>
+        <button class="btn btn-default">查詢</button>
+    </div>
+</form>
 <div id="tooltip" class="hidden">
     <p><span id="label">100</span></p>
 </div>
+<div id="svg_canvas"></div>
 <script src="../assets/javascripts/lib/d3.js"></script>
+<script src="../assets/javascripts/lib/jquery-1.11.3.min.js"></script>
 <script src="../assets/javascripts/show_graph.js"></script>
 </body>
 </html>

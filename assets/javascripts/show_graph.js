@@ -28,10 +28,9 @@ var yAxis = d3.svg.axis()
     .scale(y)
     .orient("left");
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#svg_canvas").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
-    .append("g")
     .append("g")
     .attr("transform",
     "translate(" + (width / 2 + margin.left) + "," + (height / 2 + margin.top) + ")");
@@ -42,7 +41,7 @@ var getColor = function (category) {
     return categoryColorMap[category];
 };
 
-var onReceiveData = function (data) {
+var render = function (data) {
     data.forEach(function (d) {
         d.date = +d.date;
         d.weight = +d.weight;
@@ -147,17 +146,46 @@ var onReceiveData = function (data) {
         });
 
 };
-d3.tsv(dataPath, function (error, data) {
-    onReceiveData(data);
 
-    setInterval(function () {
-        var newDate = data.length;
-        var newRow = {
-            date: newDate,
-            label: 'event#' + newDate,
-            category: newDate
-        };
-        data.push(newRow);
-        onReceiveData(data);
-    }, 5000);
+var data = [];
+
+var callFakeApi = function (keyword, _callback) {
+    var callback = function (result) {
+        _callback({
+            data: result
+        })
+    };
+    if (keyword === null || keyword === undefined) {
+        d3.tsv(dataPath, function (error, data) {
+            callback(data);
+        });
+    } else {
+        var fakeResults = [{
+            date: 1 + Math.floor(Math.random() * (applyOnField(d3.max, data, 'date') + 1)),
+            label: keyword,
+            category: 'new'
+        }];
+        callback(fakeResults);
+    }
+};
+
+var queryKeyword = function (keyword, callback) {
+    callFakeApi(keyword, callback);
+};
+
+var onResponse = function (res) {
+    data = data.concat(res.data);
+    render(data);
+};
+
+$(function () {
+    queryKeyword(null, onResponse);
+    $('#search_form')
+        .submit(function () {
+            var keyword = $('#keyword').val();
+            if (!keyword)return;
+
+            $('#keyword').val('');
+            queryKeyword(keyword, onResponse);
+        });
 });
