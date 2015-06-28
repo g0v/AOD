@@ -5,12 +5,12 @@ var NUM_DATE_PADDING = 1;
 var DOT_RADIUS = 8;
 var DOT_MARGIN = 3;
 
-var fakeData = [
-    {"date": "1.0", "weight": "4.0", "label": "台灣民主危機", "category": "A"},
-    {"date": "1.0", "weight": "1.2", "label": "立委張慶忠的座位", "category": "B"},
-    {"date": "2.0", "weight": "1.7", "label": "EventA", "category": "C"},
-    {"date": "2.0", "weight": "1.3", "label": "EventA", "category": "C"}
-];
+var fakeData = window.fakeData || [
+        {"date": "1.0", "weight": "4.0", "label": "台灣民主危機", "category": "A"},
+        {"date": "1.0", "weight": "1.2", "label": "立委張慶忠的座位", "category": "B"},
+        {"date": "2.0", "weight": "1.7", "label": "EventA", "category": "C"},
+        {"date": "2.0", "weight": "1.3", "label": "EventA", "category": "C"}
+    ];
 
 var applyOnField = function (func, data, fieldName) {
     return func(data, function (d) {
